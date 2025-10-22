@@ -1,0 +1,13 @@
+# Archivos de compilación y temporales de ESP-IDF
+/build
+/build-esp-idf
+sdkconfig
+sdkconfig.old
+
+# Archivos binarios
+*.bin
+*.map
+*.elf
+
+# Archivos del IDE (VS Code)
+.vscode/
