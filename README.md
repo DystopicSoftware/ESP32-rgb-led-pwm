@@ -1,82 +1,66 @@
-| Supported Targets | ESP32 | ESP32-C2 | ESP32-C3 | ESP32-C5 | ESP32-C6 | ESP32-C61 | ESP32-H2 | ESP32-P4 | ESP32-S2 | ESP32-S3 |
-| ----------------- | ----- | -------- | -------- | -------- | -------- | --------- | -------- | -------- | -------- | -------- |
+# Proyecto: Controlador LED RGB con PWM en ESP32
 
-# _LEDC Basic Example_
+Este es un proyecto de firmware para el ESP32 (usando ESP-IDF v5.5) que controla un LED RGB de 4 patas (cátodo común) usando el periférico **LEDC (PWM)**. El color del LED se puede cambiar cíclicamente presionando el botón "BOOT" (GPIO 0) de la placa.
 
-(See the README.md file in the upper level 'examples' directory for more information about examples.)
+El código está refactorizado en una biblioteca simple (`led_library.c` y `led_library.h`) para una fácil reutilización y mantenimiento.
 
-This example shows how to use the LEDC to generate a PWM signal using the `LOW SPEED` mode.
-To use `HIGH SPEED` mode check if the selected SoC supports this mode.
+## 🚀 Características
 
-## How to use example
+* Control de 3 canales PWM independientes para Rojo, Verde y Azul.
+* Resolución de 8 bits (0-255) para cada color.
+* Uso del botón "BOOT" (GPIO 0) con pull-up interno para cambiar de color.
+* Lógica de "antirrebote" (debounce) simple por software.
+* Código de biblioteca modular para una fácil integración.
 
-### Hardware Required
+## Hardware Requerido
 
-* A development board with any Espressif SoC (e.g., ESP32-DevKitC, ESP-WROVER-KIT, etc.)
-* A USB cable for power supply and programming
+* 1 x Placa ESP32 DevKitC v4 (o similar)
+* 1 x LED RGB de 4 patas (Cátodo Común)
+* 3 x Resistencias de 220 $\Omega$ (Ohm)
+* 1 x Breadboard y cables de conexión
 
-Connect the GPIO to an oscilloscope to see the generated signal:
+## 🔌 Conexiones de Hardware
 
-|ledc channel| GPIO  |
-|:----------:|:-----:|
-| Channel 0  | GPIO5 |
+| Componente | Conexión | ESP32 Pin |
+| :--- | :--- | :--- |
+| **LED (Pin Rojo)** | Resistencia 220 $\Omega$ | **GPIO 12** (`D12`) |
+| **LED (Pin Verde)** | Resistencia 220 $\Omega$ | **GPIO 13** (`D13`) |
+| **LED (Pin Azul)** | Resistencia 220 $\Omega$ | **GPIO 14** (`D14`) |
+| **LED (Pin Común)** | Directo | **GND** |
+| **Botón** | (Interno) | **GPIO 0** (`BOOT`) |
 
-### Configure the project
 
-The example uses fixed PWM frequency of 4 kHz, duty cycle in 50%, and output GPIO pin. To change them, adjust `LEDC_FREQUENCY`, `LEDC_DUTY`, `LEDC_OUTPUT_IO` macros at the top of ledc_basic_example_main.c.
 
-Depending on the selected `LEDC_FREQUENCY`, you will need to change the `LEDC_DUTY_RES`.
+## 💾 Estructura del Software
 
-To dynamically set the duty and frequency, you can use the following functions:
+El proyecto está organizado en dos partes principales dentro de la carpeta `main/`:
 
-To set the frequency to 2.5 kHZ i.e:
+* **`ledc_basic_example_main.c`**:
+    * Contiene la lógica principal de la aplicación (`app_main`).
+    * Inicializa la biblioteca de LED y el GPIO del botón.
+    * Ejecuta el bucle infinito `while(1)` que comprueba el estado del botón y cambia los colores.
+* **`led_library.c` / `led_library.h`**:
+    * Una biblioteca de abstracción simple.
+    * `led_lib_init()`: Configura el temporizador LEDC y los 3 canales PWM (R, G, B) asociados a los pines GPIO definidos.
+    * `led_lib_set_rgb(r, g, b)`: Una función simple que recibe valores de 0-255 y actualiza el *duty cycle* de los 3 canales PWM.
 
-```c
-ledc_set_freq(LEDC_MODE, LEDC_TIMER, 2500);
-```
+## 🛠️ Cómo Compilar y Usar
 
-Now set the duty to 100% i.e:
+Este proyecto se compila con el **ESP-IDF v5.5**.
 
-```c
-ledc_set_duty(LEDC_MODE, LEDC_CHANNEL, 8192);
-ledc_update_duty(LEDC_MODE, LEDC_CHANNEL);
-```
+1.  Clona el repositorio.
+2.  Abre el proyecto en VS Code con la extensión de Espressif.
+3.  Conecta tu ESP32.
+4.  Selecciona el puerto COM correcto (ej. `COM9`).
+5.  Haz clic en el botón "Build, Flash, and Monitor" (el icono del rayo con un monitor).
 
-To change the duty cycle you need to calculate the duty range according to the duty resolution.
+### Operación
 
-If duty resolution is 13 bits:
-
-Duty range: `0 to (2 ** 13) = 8191` where 0 is 0% and 8192 is 100%.
-
-### Build and Flash
-
-* [ESP-IDF Getting Started Guide](https://idf.espressif.com/)
-
-Build the project and flash it to the board, then run monitor tool to view serial output:
-
-```bash
-idf.py -p PORT flash monitor
-```
-
-(To exit the serial monitor, type ``Ctrl-]``.)
-
-See the Getting Started Guide for full steps to configure and use ESP-IDF to build projects.
-
-## Example Output
-
-Running this example, you will see the PWM signal with a duty cycle of 50%.
-
-![PWM](image/ledc_pwm_signal.png)
-
-## Troubleshooting
-
-* Duty Resolution
-
-    * If you get the following error log `ledc: requested frequency and duty resolution can not be achieved, try reducing freq_hz or duty_resolution.` you need to change the `LEDC_DUTY_RES` to a lower resolution and change the range of the duty.
-
-* Programming fail
-
-    * Hardware connection is not correct: run `idf.py -p PORT monitor`, and reboot your board to see if there are any output logs.
-    * The baud rate for downloading is too high: lower your baud rate in the `menuconfig` menu, and try again.
-
-For any technical queries, please open an [issue](https://github.com/espressif/esp-idf/issues) on GitHub. We will get back to you soon.
+* Al arrancar, el LED se encenderá en **Rojo**.
+* Cada vez que presiones el botón `BOOT` (GPIO 0), el color cambiará en el siguiente orden:
+    1.  Rojo
+    2.  Verde
+    3.  Azul
+    4.  Amarillo
+    5.  Apagado
+* El ciclo se repite.
